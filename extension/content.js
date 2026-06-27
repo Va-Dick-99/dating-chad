@@ -133,19 +133,53 @@
     return hasData ? base : manual ? { bio: manual, app: base.app } : null;
   }
 
+  // Rough richness score so a background re-scan never replaces a detailed
+  // profile (captured from the open full-profile modal) with the thin chat
+  // header (name/age only) that Badoo shows once the modal is closed.
+  function profileRichness(p) {
+    if (!p) return 0;
+    return (
+      (p.bio ? 20 : 0) +
+      (p.work ? 8 : 0) +
+      (p.education ? 4 : 0) +
+      (p.goal ? 4 : 0) +
+      (p.prompts?.length || 0) * 6 +
+      (p.interests?.length || 0) * 2 +
+      (p.details?.length || 0)
+    );
+  }
+
   function scrapePage(opts = {}) {
     const preserveResults = opts.preserveResults !== false;
     try {
       const adapter = window.DatingChad.pickAdapter();
       const { profile, messages, photos } = adapter.scrape();
+      const newProfile = profile || null;
+      const newPhotos = photos || [];
+
+      // Always refresh the transcript from the page.
       $("#dc-transcript").value = transcriptFromMessages(messages || []);
-      scrapedProfile = profile || null;
-      const profileText =
-        profile?.bioText ||
-        [profile?.name, profile?.bio].filter(Boolean).join(" — ");
-      $("#dc-profile").value = profileText || "";
-      panel.dataset.app = profile?.app || adapter.app || "";
-      scrapedPhotos = photos || [];
+
+      // A fresh open (panel opened / navigated to a new chat) takes the new
+      // scrape verbatim. A background or manual RE-scan must never DOWNGRADE:
+      // closing Badoo's full-profile modal returns the thin chat header, and we
+      // don't want it to wipe the richer profile (bio/prompts) we just captured
+      // while the modal was open. The user can still edit the box by hand.
+      const downgrade =
+        preserveResults && profileRichness(newProfile) <= profileRichness(scrapedProfile);
+      if (!downgrade) {
+        scrapedProfile = newProfile;
+        $("#dc-profile").value =
+          newProfile?.bioText ||
+          [newProfile?.name, newProfile?.bio].filter(Boolean).join(" — ") ||
+          "";
+        panel.dataset.app = newProfile?.app || adapter.app || panel.dataset.app || "";
+      }
+      // Photos follow the same rule: keep the larger set the open profile gave us.
+      if (!preserveResults || newPhotos.length > scrapedPhotos.length) {
+        scrapedPhotos = newPhotos;
+      }
+
       if (!preserveResults) $("#dc-photo-info").value = "";
       updateProfileHint();
       updateGoalLabel();
