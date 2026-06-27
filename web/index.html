@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dating-chad · message wingman</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="hero">
+      <div class="logo">💬🔥</div>
+      <div>
+        <h1>dating-chad</h1>
+        <p class="tagline">Analyze the profile &amp; chat, get the perfect next message.</p>
+      </div>
+      <div class="engine-badge" id="engineBadge" title="Active engine">…</div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <h2>1 · Their profile</h2>
+        <div class="row two">
+          <label>Name<input id="name" placeholder="e.g. Alex" /></label>
+          <label>Age<input id="age" type="number" min="18" placeholder="e.g. 27" /></label>
+        </div>
+        <label>App
+          <select id="app">
+            <option value="">—</option>
+            <option>tinder</option>
+            <option>badoo</option>
+            <option>hinge</option>
+            <option>bumble</option>
+          </select>
+        </label>
+        <label>Bio
+          <textarea id="bio" rows="3" placeholder="Paste their bio here…"></textarea>
+        </label>
+        <label>Interests <span class="hint">(comma separated)</span>
+          <input id="interests" placeholder="climbing, jazz, dumplings" />
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>2 · The conversation</h2>
+        <p class="hint">
+          Paste the chat. One line per message, prefixed with
+          <code>me:</code> or <code>them:</code>. Leave empty for a fresh opener.
+        </p>
+        <textarea id="transcript" rows="9" placeholder="them: hey! love that you're into climbing&#10;me: haha guilty — indoor or real rock?&#10;them: real rock, did my first multi-pitch last month"></textarea>
+
+        <div class="row two">
+          <label>Goal
+            <select id="goal">
+              <option value="continue">Continue the chat</option>
+              <option value="open">Write an opener</option>
+            </select>
+          </label>
+          <label>About you <span class="hint">(optional)</span>
+            <input id="aboutMe" placeholder="e.g. sarcastic, into food &amp; travel" />
+          </label>
+        </div>
+
+        <fieldset class="tones">
+          <legend>Tones</legend>
+          <label class="chip"><input type="checkbox" value="playful" checked /> Playful</label>
+          <label class="chip"><input type="checkbox" value="sincere" checked /> Sincere</label>
+          <label class="chip"><input type="checkbox" value="witty" checked /> Witty</label>
+          <label class="chip"><input type="checkbox" value="flirty" /> Flirty</label>
+          <label class="chip"><input type="checkbox" value="funny" /> Funny</label>
+        </fieldset>
+
+        <button id="go" class="primary">Get suggestions ✨</button>
+      </section>
+    </main>
+
+    <section id="results" class="results hidden">
+      <div class="insights">
+        <div class="card insight-card">
+          <h3>Profile read</h3>
+          <div id="profileInsights"></div>
+        </div>
+        <div class="card insight-card">
+          <h3>Conversation read</h3>
+          <div id="convoInsights"></div>
+        </div>
+      </div>
+      <h2 class="suggestions-title">Suggested messages</h2>
+      <div id="suggestions" class="suggestions"></div>
+    </section>
+
+    <footer class="foot">
+      <p>
+        Use responsibly. dating-chad helps you write <em>your own</em> authentic messages —
+        no deception, no pressure. Direct app access is unofficial; the manual paste flow is the
+        recommended, ToS-safe path.
+      </p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

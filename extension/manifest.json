@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "dating-chad",
+  "version": "0.1.0",
+  "description": "Suggest the best message to start or continue a dating-app conversation (Badoo, Tinder, Hinge, Bumble).",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "http://127.0.0.1:8000/*",
+    "http://localhost:8000/*",
+    "<all_urls>"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "dating-chad settings"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.badoo.com/*",
+        "*://*.tinder.com/*",
+        "*://*.hinge.co/*",
+        "*://*.bumble.com/*"
+      ],
+      "js": ["adapters.js", "content.js"],
+      "css": ["panel.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

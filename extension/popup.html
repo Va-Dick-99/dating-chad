@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      width: 280px; margin: 0; padding: 16px;
+      font-family: system-ui, sans-serif; background: #1d1933; color: #f3f0ff;
+    }
+    h1 { font-size: 15px; margin: 0 0 12px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #a79fce; margin: 10px 0 4px; }
+    input[type="text"] {
+      width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid #322b53; background: #141124; color: #f3f0ff; font-size: 13px;
+    }
+    .tones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .tones label { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; color: #f3f0ff; margin: 0; text-transform: capitalize; }
+    button {
+      margin-top: 14px; width: 100%; padding: 9px; border: none; border-radius: 9px;
+      font-weight: 700; color: #fff; cursor: pointer;
+      background: linear-gradient(135deg, #ff5e8a, #7c5cff);
+    }
+    .status { font-size: 12px; margin-top: 10px; height: 14px; }
+    .ok { color: #34d399; }
+  </style>
+</head>
+<body>
+  <h1>💬🔥 dating-chad</h1>
+  <label for="backendUrl">Адрес бэкенда</label>
+  <input type="text" id="backendUrl" placeholder="http://127.0.0.1:8000" />
+
+  <label>Тоны по умолчанию</label>
+  <div class="tones" id="tones"></div>
+
+  <button id="save">Сохранить</button>
+  <div class="status" id="status"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

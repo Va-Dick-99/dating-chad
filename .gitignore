@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+*.local
+
+# Caches / data
+.cache/
+data/
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Browser (Chrome for Testing) + dedicated profiles
+.cft/
+.cft-profile/
+.chrome-profile/
