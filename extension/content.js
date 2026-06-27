@@ -17,6 +17,7 @@
   let config = { tones: DEFAULT_TONES };
   let scrapedPhotos = [];
   let scrapedProfile = null;
+  let scrapedConvKey = ""; // identity of the conversation scrapedProfile belongs to
 
   // Read saved tones directly — no service worker round-trip (avoids "port closed" errors).
   chrome.storage.local.get({ tones: DEFAULT_TONES }, (stored) => {
@@ -133,23 +134,79 @@
     return hasData ? base : manual ? { bio: manual, app: base.app } : null;
   }
 
+  // Rough richness score so a background re-scan never replaces a detailed
+  // profile (captured from the open full-profile modal) with the thin chat
+  // header (name/age only) that Badoo shows once the modal is closed.
+  function profileRichness(p) {
+    if (!p) return 0;
+    return (
+      (p.bio ? 20 : 0) +
+      (p.work ? 8 : 0) +
+      (p.education ? 4 : 0) +
+      (p.goal ? 4 : 0) +
+      (p.prompts?.length || 0) * 6 +
+      (p.interests?.length || 0) * 2 +
+      (p.details?.length || 0)
+    );
+  }
+
+  // Identity of the open conversation. Stable while you open/close a match's
+  // full profile (same chat → same messages), but different for a different
+  // match. Empty when the chat isn't readable (e.g. hidden behind the modal),
+  // which we treat as "unknown — don't reset".
+  function conversationKey(messages) {
+    if (!messages || !messages.length) return "";
+    return messages.map((m) => m.sender + ":" + m.text).join("|").slice(0, 600);
+  }
+
+  function profileToBox(p) {
+    return p?.bioText || [p?.name, p?.bio].filter(Boolean).join(" — ") || "";
+  }
+
   function scrapePage(opts = {}) {
     const preserveResults = opts.preserveResults !== false;
     try {
       const adapter = window.DatingChad.pickAdapter();
       const { profile, messages, photos } = adapter.scrape();
-      $("#dc-transcript").value = transcriptFromMessages(messages || []);
-      scrapedProfile = profile || null;
-      const profileText =
-        profile?.bioText ||
-        [profile?.name, profile?.bio].filter(Boolean).join(" — ");
-      $("#dc-profile").value = profileText || "";
-      panel.dataset.app = profile?.app || adapter.app || "";
-      scrapedPhotos = photos || [];
-      if (!preserveResults) $("#dc-photo-info").value = "";
+      const newProfile = profile || null;
+      const newMsgs = messages || [];
+      const newPhotos = photos || [];
+
+      const newKey = conversationKey(newMsgs);
+      // A genuinely different match: a confident, non-empty key that CHANGED.
+      // Opening/closing the profile keeps the same key, so it is not a switch.
+      const switchedMatch = !!newKey && !!scrapedConvKey && newKey !== scrapedConvKey;
+
+      if (switchedMatch) {
+        // New conversation → start clean.
+        scrapedProfile = newProfile;
+        scrapedPhotos = newPhotos;
+        $("#dc-profile").value = profileToBox(newProfile);
+        $("#dc-transcript").value = transcriptFromMessages(newMsgs);
+        panel.dataset.app = newProfile?.app || adapter.app || "";
+        $("#dc-photo-info").value = "";
+        $("#dc-results").innerHTML = "";
+      } else {
+        // Same match (or chat momentarily unreadable behind the open modal):
+        // NEVER downgrade what we captured. This holds across every scrape path
+        // — the MutationObserver re-scan AND the navigation/openPanel reset that
+        // fires when Badoo's profile modal opens/closes (it changes the URL),
+        // which the earlier preserveResults-only guard missed.
+        if (!scrapedProfile || profileRichness(newProfile) > profileRichness(scrapedProfile)) {
+          scrapedProfile = newProfile;
+          $("#dc-profile").value = profileToBox(newProfile);
+          panel.dataset.app = newProfile?.app || adapter.app || panel.dataset.app || "";
+        }
+        if (newPhotos.length > scrapedPhotos.length) scrapedPhotos = newPhotos;
+        // Only refresh the transcript when the page actually shows messages, so
+        // an open modal that hides the chat can't blank it.
+        if (newMsgs.length) $("#dc-transcript").value = transcriptFromMessages(newMsgs);
+        if (!preserveResults) $("#dc-photo-info").value = "";
+      }
+
+      if (newKey) scrapedConvKey = newKey;
       updateProfileHint();
       updateGoalLabel();
-      if (!preserveResults) $("#dc-results").innerHTML = "";
     } catch (e) {
       if (!preserveResults) {
         $("#dc-results").innerHTML = `<div class="dc-err">Не удалось распознать страницу автоматически. Вставь переписку вручную ниже.</div>`;

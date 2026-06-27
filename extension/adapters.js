@@ -20,9 +20,23 @@
     return [];
   }
 
+  // True for the live message bubbles AND the surrounding Badoo chat-view UI
+  // chrome that is NOT real profile data: the nav strip, the mini-profile
+  // *user-info* summary (name/age/city/match-banner), date pills, read-receipt
+  // status, and screen-reader-only (a11y) duplicate text. Folding the chrome in
+  // here makes every existing profile harvester that already guards with
+  // isInChatMessages (scrapeRootsWithoutChat, scrapeDomPairs, findProfileScope,
+  // the headerEls/prompt loops) skip this chrome too. NOTE: it deliberately
+  // matches the suffixed "mini-profile-user-info"/"mini-profile__user-info" and
+  // NOT bare "mini-profile", so the photo gallery (mini-profile__gallery) and
+  // collectPhotos are unaffected. scrapeMessages/classify do NOT call this, so
+  // message scraping is untouched.
   function isInChatMessages(el) {
     return !!el.closest(
-      '[class*="messages-list"], [class*="message-list"], [role="log"], [class*="chat-message"]'
+      '[class*="messages-list"], [class*="message-list"], [role="log"], [class*="chat-message"], ' +
+        '[class*="navigation-bar"], [class*="mini-profile-user-info"], [class*="mini-profile__user-info"], ' +
+        '[class*="chat-date"], [class*="message-item-status"], [class*="a11y-visually-hidden"], ' +
+        '[class*="chat-footer"], [class*="chat-controls"], [class*="chat-composer"], [class*="tabbar"]'
     );
   }
 
@@ -58,8 +72,18 @@
   const NOISE_LINE =
     /^(отправить|сообщение|type a message|твоё сообщение|твоё|симпатия|match|назад|закрыть|close|report|пожаловаться|интересы$|главное$|активация windows|открыть профиль|open profile|подсказать|пересканировать)/i;
 
+  // Chat-header UI chrome (EN + RU) that can still leak into a profile "detail".
+  // Anchored to the WHOLE token where it matters: bare labels/ages only match
+  // when the entire token is that label/age, so real values like "Работаю в
+  // Google" or "25 лет в IT" survive. Generalized — no hardcoded city/name.
   const NOISE_DETAIL =
-    /^(открыть профиль|симпатия|match|назад|закрыть|close|,\s*\d{2}$|^\d{2}$|образование:|работа:)/i;
+    /^(открыть профиль|open profile|view profile|симпатия|match|liked you|verified profile|назад|back|закрыть|close|education|образование|work|работа|you'?ve matched|you matched.*ago|вы совпали.*|has .+ seen.*|online.*ago|онлайн.*|,?\s*\d{1,3}(\s+years old)?|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s*\d{4})\s*$/i;
+
+  // Composite chrome anywhere inside a token, e.g. the screen-reader strings
+  // "Work: Odesa" / "Odesa Work: Odesa" / "You matched 5 days ago". Requires the
+  // "Work:"/"Education:" label+colon+space form so normal prose is unaffected.
+  const NOISE_DETAIL_CONTAINS =
+    /(\bwork:\s|\beducation:\s|открыть профиль|open profile|you'?ve matched|matched .*ago)/i;
 
   function isLikelyLabel(line) {
     const l = line.toLowerCase().trim();
@@ -75,6 +99,11 @@
     if (!value || value === label || value.length > 400) return;
     const l = label.toLowerCase().trim();
     const v = value.trim();
+    // Reject Badoo chat-view chrome leaking in as a "value" — e.g. an English
+    // "Education"/"Work" label paired with the match banner ("You matched 5 days
+    // ago") or "Open Profile". Harvesters reading the bare mini-profile ancestor
+    // pull these via innerText; the value-side filter stops them at the source.
+    if (NOISE_DETAIL.test(v) || NOISE_DETAIL_CONTAINS.test(v)) return;
     if (/^о себе|about me|про себе/.test(l)) profile.bio = v;
     else if (/^работа$|^work$/.test(l)) profile.work = v;
     else if (/^образование|education/.test(l)) profile.education = v;
@@ -97,7 +126,13 @@
     into.interests = [...new Set([...(into.interests || []), ...(from.interests || [])])];
     into.prompts = [...new Set([...(into.prompts || []), ...(from.prompts || [])])];
     const details = [...new Set([...(into.details || []), ...(from.details || [])])].filter(
-      (d) => d && d.length > 1 && d.length < 80 && !NOISE_DETAIL.test(d.trim())
+      (d) =>
+        d &&
+        d.length > 1 &&
+        d.length < 80 &&
+        !NOISE_DETAIL.test(d.trim()) &&
+        !NOISE_DETAIL_CONTAINS.test(d.trim()) &&
+        (!into.name || d.trim() !== into.name)
     );
     into.details = details;
   }
@@ -241,8 +276,20 @@
     const nameRaw = text(nameEl);
     if (nameRaw) {
       profile.name = nameRaw.split(",")[0].trim();
-      const ageM = nameRaw.match(/,\s*(\d{2})/);
+      const ageM = nameRaw.match(/,\s*(\d{1,3})/);
       if (ageM) profile.age = parseInt(ageM[1], 10);
+    }
+    // Badoo's chat header keeps the age in a sibling node (e.g.
+    // <span data-qa="profile-info__age">25</span>), not inside the name h1, so
+    // the "Имя, 25" comma-parse above misses it. Fall back to the dedicated age
+    // element. Bounded 18-120 so it can't grab stray numbers; only runs when age
+    // is still undefined, so it never overrides a real parse.
+    if (!profile.age) {
+      const ageEl = document.querySelector(
+        '[data-qa="profile-info__age"], [class*="profile-info__age"]'
+      );
+      const ageNum = parseInt(text(ageEl).replace(/[^\d]/g, ""), 10);
+      if (ageNum >= 18 && ageNum <= 120) profile.age = ageNum;
     }
 
     const headerEls = [
@@ -294,8 +341,16 @@
       '[class*="chat-header"], [class*="conversation-header"], [class*="profile-bar"], [class*="user-info"], [class*="match-bar"]'
     );
     for (const root of headerRoots) {
+      // This loop pushes straight to profile.work/details and bypasses
+      // mergeProfile's filter, so it must reject Badoo's chat-view chrome itself:
+      // skip chrome subtrees (mini-profile-user-info, nav, match-banner, a11y
+      // echoes) AND drop any chrome tokens that slip through.
+      if (isInChatMessages(root)) continue;
       for (const t of extractChips(root)) {
+        const tt = t.trim();
         if (profile.details.includes(t)) continue;
+        if (NOISE_DETAIL.test(tt) || NOISE_DETAIL_CONTAINS.test(tt)) continue;
+        if (profile.name && tt === profile.name) continue;
         if (!profile.work && /прокраст|работ|work|фриланс|офис/i.test(t)) profile.work = t;
         else if (!profile.education && /школ|универ|магист|образ|college|uni/i.test(t))
           profile.education = t;
