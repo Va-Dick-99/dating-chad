@@ -42,6 +42,37 @@ deception, or pressure. Respect a clear lack of interest.
 
 ---
 
+## 🚀 Quick start (macOS / Linux)
+
+```bash
+cd dating-chad
+
+# 1. Create & activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. (Optional) configure your API key
+cp .env.example .env
+#   then edit .env and set OPENAI_API_KEY=sk-...
+#   (skip this to run in heuristic mode)
+
+# 4. Run it
+uvicorn app.main:app --reload
+```
+
+Open <http://127.0.0.1:8000> in your browser. Or use the one-shot launcher,
+which starts the backend (if needed) and opens a browser:
+
+```bash
+./launch.sh
+```
+
+> 📖 Full walkthrough, the extension, and troubleshooting:
+> [docs/macos-setup.md](docs/macos-setup.md).
+
 ## 🚀 Quick start (Windows / PowerShell)
 
 ```powershell
@@ -154,7 +185,15 @@ them: real rock, did my first multi-pitch last month
 
 ### Example
 
+```bash
+# macOS / Linux (bash)
+curl -X POST http://127.0.0.1:8000/api/suggest-from-transcript \
+  -H "Content-Type: application/json" \
+  -d '{"profile":{"name":"Alex","bio":"climber, coffee snob, dog mom"},"transcript":"them: hey!","goal":"continue","tone":["playful","sincere"]}'
+```
+
 ```powershell
+# Windows (PowerShell)
 curl -X POST http://127.0.0.1:8000/api/suggest-from-transcript `
   -H "Content-Type: application/json" `
   -d '{\"profile\":{\"name\":\"Alex\",\"bio\":\"climber, coffee snob, dog mom\"},\"transcript\":\"them: hey!\",\"goal\":\"continue\",\"tone\":[\"playful\",\"sincere\"]}'

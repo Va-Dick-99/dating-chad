@@ -297,7 +297,7 @@
       $("#dc-results").innerHTML =
         engineNote +
         insight +
-        `<div class="dc-err">Бэкенд вернул пустой ответ. Проверь, что сервер запущен (launch.ps1).</div>`;
+        `<div class="dc-err">Бэкенд вернул пустой ответ. Проверь, что сервер запущен (launch.sh / launch.ps1).</div>`;
       return;
     }
 

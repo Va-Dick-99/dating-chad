@@ -110,7 +110,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: true, data: await res.json() });
       } catch (e) {
         const msg = e?.name === "AbortError"
-          ? "Backend не ответил за 2 минуты. Перезапусти dating-chad (launch.ps1)."
+          ? "Backend не ответил за 2 минуты. Перезапусти бэкенд dating-chad (launch.sh / launch.ps1)."
           : e?.message || String(e);
         sendResponse({
           ok: false,
