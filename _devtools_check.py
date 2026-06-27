@@ -1,10 +1,12 @@
 import json
+import os
 import time
 import urllib.request
 
-import websocket  # websocket-client
+import websocket  # pip install websocket-client
 
-EXT_PATH = r"C:\Users\Va Dick\Vibe Projects\dating-chad\extension"
+# Resolve the extension folder relative to this file so it works on any OS.
+EXT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extension")
 DEBUG = "http://127.0.0.1:9222"
 
 
