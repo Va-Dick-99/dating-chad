@@ -85,6 +85,32 @@
   const NOISE_DETAIL_CONTAINS =
     /(\bwork:\s|\beducation:\s|открыть профиль|open profile|you'?ve matched|matched .*ago)/i;
 
+  // Pre-populated Badoo "intention" answers — picked from a list, not written by
+  // her, so they're generic and boring. Anchored to the WHOLE answer so a real
+  // longer answer that merely contains these words survives.
+  const PROMPT_CANNED_ANSWER =
+    /^(here to date|here to chat|up for a date|open to (chat|dating|new people)|ready for a relationship|looking for (the one|a relationship|something (serious|casual)|friends|fun)|make new friends|making new friends|new friends|let'?s see (where it goes|what happens)|still figuring it out|i'?ll know when i find it|просто пообщаться|познакомиться|серьёзные отношения|дружба|свидания?|отношения)\.?$/i;
+
+  // Badoo's templated "Why is X here?" intentions question, and UI chrome that
+  // got mis-parsed into a Q→A prompt (name/age/verified/matched).
+  const PROMPT_JUNK_QUESTION =
+    /(why\s+(is\s+)?.*\bhere\b|(зачем|почему)\s+.*\bздесь\b|years old|verified profile|you'?ve matched|вы совпали)/i;
+
+  // Keep only prompts that read like HER OWN words. Drops canned intentions and
+  // chrome echoes (e.g. "Why Ирина's here → Here to date", "Ирина, 25 years old,
+  // Verified profile, You've matched → Ирина, 25").
+  function usablePrompt(s) {
+    if (!s) return false;
+    const i = s.indexOf("→");
+    const ques = (i >= 0 ? s.slice(0, i) : "").trim();
+    const ans = (i >= 0 ? s.slice(i + 1) : s).trim();
+    if (ans.length < 2) return false;
+    if (NOISE_DETAIL.test(ans) || NOISE_DETAIL_CONTAINS.test(ans)) return false;
+    if (NOISE_DETAIL_CONTAINS.test(ques) || PROMPT_JUNK_QUESTION.test(ques)) return false;
+    if (PROMPT_CANNED_ANSWER.test(ans)) return false;
+    return true;
+  }
+
   function isLikelyLabel(line) {
     const l = line.toLowerCase().trim();
     if (!l || l.length > 90 || NOISE_LINE.test(l)) return false;
@@ -124,7 +150,7 @@
     if (from.education && !into.education) into.education = from.education;
     if (from.goal && !into.goal) into.goal = from.goal;
     into.interests = [...new Set([...(into.interests || []), ...(from.interests || [])])];
-    into.prompts = [...new Set([...(into.prompts || []), ...(from.prompts || [])])];
+    into.prompts = [...new Set([...(into.prompts || []), ...(from.prompts || [])])].filter(usablePrompt);
     const details = [...new Set([...(into.details || []), ...(from.details || [])])].filter(
       (d) =>
         d &&
@@ -368,6 +394,7 @@
       profile.interests = [...new Set(profile.interests)].slice(0, 12);
     }
 
+    profile.prompts = [...new Set(profile.prompts)].filter(usablePrompt);
     return profile;
   }
 
