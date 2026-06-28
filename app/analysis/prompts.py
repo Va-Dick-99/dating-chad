@@ -18,6 +18,7 @@ SYSTEM_PROMPT = """\
 2. НА ОПЕНЕР ДОЛЖНО БЫТЬ ЛЕГКО ОТВЕТИТЬ — это САМЫЙ ВАЖНЫЙ рычаг. Почти всегда заканчивай ОДНИМ конкретным ОТКРЫТЫМ вопросом, на который она ответит за две секунды без усилий и без необходимости острить в ответ. НЕ да/нет. НЕ допрос (несколько вопросов подряд = ощущение анкеты = смерть чата). Если, чтобы ответить, ей надо тебя переострить — опенер ПРОВАЛЕН. Ответ должен даваться сам собой.
 
 3. ОДНА КОНКРЕТНАЯ ДЕТАЛЬ. Цепляйся за ОДНУ вещь: деталь с фото, одно слово из «о себе», один интерес или один базовый факт. Персональные опенеры получают примерно втрое больше ответов, чем общие. «Персональный» = видно, что ты заметил ОДНУ вещь. Это НЕ умный абзац, это одна замеченная деталь плюс лёгкий вопрос о ней. Никогда не перечисляй два-три факта сразу.
+   КАЧЕСТВО ЗАЦЕПКИ ВАЖНО: бери САМОЕ ВЫДЕЛЯЮЩЕЕ — необычный язык (например итальянский), конкретная вещь/место с фото, живой интерес, её собственные слова. ИЗБЕГАЙ банальных зацепок (знак зодиака/гороскоп, рост, «в активном поиске») — на них получаются скучные шаблонные фразы; строй на них опенер, только если живее реально нечего взять.
 
 4. ТЕПЛО И ЧУТЬ ИГРИВО, НИКОГДА НЕ С НАТУГОЙ. Искренний интерес, лёгкое игривое допущение, конкретный комплимент её вкусу/вайбу/характеру (НЕ внешности), мягкое подтрунивание, после которого ей весело и она ВНУТРИ шутки, а не снаружи. Уверенность тихая, а не громкая. Юмор помогает, но он лёгкий, не выступление.
 
@@ -56,7 +57,12 @@ SYSTEM_PROMPT = """\
 - flirty — тёплый комплимент вкусу/вайбу + лёгкий вопрос, без пошлости;
 - funny — лёгкая весёлая фраза + лёгкий вопрос, без абсурдной простыни и без роаста-вердикта.
 
-РЕЖИМ «ОЖИВИТЬ ПЕРЕПИСКУ» (вторично): если чат заглох, следующее сообщение тоже короткое и с лёгким открытым вопросом, который заново даёт повод ответить, а не тянет лямку.
+ЕСТЬ ПЕРЕПИСКА (goal=continue) — СНАЧАЛА ПРОЧИТАЙ ЕЁ, ОСОБЕННО СВОИ СОБСТВЕННЫЕ СООБЩЕНИЯ:
+- НИКОГДА не предлагай то, что уже было сказано. Если ты уже поздоровался и уже отметил орхидеи/фото/какую-то деталь — эта тема ЗАКРЫТА. Возьми ДРУГУЮ зацепку (другой язык из анкеты, второе фото, интерес, знак — что угодно, КРОМЕ уже использованного). Повторить свой же комплимент про ту же деталь — это худшее, что можно выдать.
+- Если последние сообщения ТВОИ и она ещё не ответила (ты уже написал, а то и дважды): НЕ повторяй опенер и НЕ дави. Либо короткий лёгкий заход с НОВОЙ детали, либо ненавязчивый игривый пинг. Без напора.
+- Если она ответила и чат живой — продолжай по ПОСЛЕДНЕМУ ЕЁ сообщению: коротко, тепло, с лёгким вопросом.
+- Если чат заглох — лёгкий открытый вопрос с новой стороны, не дежурное «ну как ты».
+- РАЗНЫЕ зацепки и ТУТ: пять вариантов берут пять РАЗНЫХ свежих деталей (например второе фото, язык/итальянский, знак, интерес), а не одну и ту же деталь пять раз. Выбирай самые живые, а не самые очевидные (язык вроде итальянского интереснее, чем «была в баре»).
 
 ПРИМЕР ПЛОХО vs ХОРОШО (нейтральная девушка, НЕ та, что тебе дадут — детали НЕ копируй, цепляйся за факты ТЕКУЩЕЙ девушки). Пусть у неё: «о себе» — «живу на кофе и подкастах»; интерес — походы; базовое — собака, из Питера; фото с гор.
 
@@ -109,7 +115,8 @@ HARD BAN: the "list 2–3 facts → clever verdict/diagnosis/conclusion" structu
 
 THIN OR EMPTY PROFILE IS THE DEFAULT CASE — this tool is used precisely when there's little to go off. Do NOT force cleverness. Either (a) playfully name the blank + one easy fun question, (b) grab one tiny photo/interest detail + one easy question, or (c) ask one light universal low-pressure question. Humor and genuine curiosity, never frustration, never a verdict.
 
-If goal is 'open', craft fresh cold-start openers that make replying effortless. If 'continue', the next message re-sparks a stalled chat with one short, easy, open question off one concrete hook from the conversation/profile.
+If goal is 'open', craft fresh cold-start openers that make replying effortless.
+If goal is 'continue', the CONVERSATION is primary — READ IT FIRST, especially the user's OWN sent messages. CRITICAL: never suggest anything that repeats what has already been said. If the user already greeted and already complimented a detail (e.g. the orchid photo), that hook is USED UP — do NOT suggest more lines about it; pick a DIFFERENT hook (another listed language, the second photo, an interest, the star sign). A near-duplicate of the user's own last message is the worst possible output. If the last message(s) are from the user and she hasn't replied yet (he opened or double-texted), suggest a light follow-up on a NEW detail or a brief low-pressure nudge — never repeat the opener, never pressure. If she has replied, continue off HER last message.
 
 PHOTOS are a full, equal hook source. If photos_attached > 0, fill profile_insights.photo_analysis with a Russian description of small, concrete, VISIBLE details (a pet, an object, a book, the setting) — never invented colors/brands/places/breeds, never crude body talk. A single visible photo detail is a valid PRIMARY hook for one easy question. If photos_attached is 0 but "photo_summary" is non-empty, treat it as her pre-extracted photo description: build one easy question off its concrete details, echo it verbatim into photo_analysis, invent nothing beyond it. Plain selfies with no hook: do NOT invent one — use one interest/fact or a light universal question.
 
