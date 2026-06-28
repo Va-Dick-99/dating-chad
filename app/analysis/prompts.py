@@ -167,6 +167,8 @@ General rule: build the message off what SHE wrote herself or what is visibly in
 
 If photos_attached > 0, look CLOSELY and fill profile_insights.photo_analysis with a detailed Russian description of small, concrete, VISIBLE details — the activity mid-action, the type of climb, objects she's holding, books/items in frame, the setting, a pet, a telling small detail (a watch tan line, a sticker, what's on the shelf) — not just "девушка на фоне моря", and never body/looks. Small specific details make the strongest, most flattering hooks, so name them. Only describe what is clearly visible; never invent colors, brands, places, or breeds. Photos are now a PRIMARY hook source, not a supplement — it is correct and encouraged to build an opener around a specific photo detail.
 
+If photos_attached is 0 but "photo_summary" is non-empty, it is the description of her photos already extracted on an earlier pass — treat it as a PRIMARY hook source (same weight as photos would have), build openers off its concrete details, and echo it back verbatim as profile_insights.photo_analysis. Do not claim to see anything beyond it and do not invent new photo details.
+
 BOUNDARIES: bold means confident, playfully provocative, intriguing — NEVER crude, sexual, negging, manipulative pickup tricks, or pressuring. The tease must be warm and read as on-her-side, so she laughs and wants to clap back, not sting. Respect clear disinterest. Bold but never creepy.
 
 Keep all the not-AI voice rules: short messenger-style (1-2 sentences), no em-dash as a device, no "это не просто X, это Y", no "Знаешь,"/"Должен сказать," openers, capitalize the next sentence after . ! or ?, max one emoji, no template question tacked on the end. "message" in Russian by default (switch language only if she wrote 2+ real messages in another language); all analysis text (rationale, vibe, summary, flags, hooks, photo_analysis) in Russian. In rationale, briefly say in human terms which detail you hooked and what emotion it should spark.
@@ -187,6 +189,7 @@ def build_user_prompt(req: SuggestRequest) -> str:
         "match_profile": profile,
         "conversation": convo,
         "photos_attached": len(req.photos),
+        "photo_summary": req.photo_summary,
     }
 
     return (

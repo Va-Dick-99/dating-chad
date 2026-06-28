@@ -34,6 +34,11 @@ def generate(req: SuggestRequest) -> SuggestResponse:
             )
     else:
         resp = _generate_heuristic(req)
+    # When reusing a cached photo description (images not re-sent), keep it stable
+    # so the panel's «По фото» box isn't clobbered between presses and the next
+    # press sends the same summary back.
+    if req.photo_summary and not req.photos:
+        resp.profile_insights.photo_analysis = req.photo_summary
     _normalize_messages(resp)
     return resp
 
