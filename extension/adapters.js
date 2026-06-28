@@ -402,16 +402,18 @@
     if (!p) return "";
     const lines = [];
     if (p.name) lines.push(p.name + (p.age ? `, ${p.age}` : ""));
+    // Ordered by how much it reflects HER: free text and her own prompt answers
+    // first, her chosen interests next, pre-populated facts (basics/work/edu) last.
     if (p.bio) lines.push(`О себе: ${p.bio}`);
-    if (p.goal) lines.push(`Цель: ${p.goal}`);
-    if (p.work) lines.push(`Работа: ${p.work}`);
-    if (p.education) lines.push(`Образование: ${p.education}`);
-    if (p.interests?.length) lines.push(`Интересы: ${[...new Set(p.interests)].join(", ")}`);
     if (p.prompts?.length) {
-      lines.push("Промпты:");
+      lines.push("Промпты (её ответы):");
       [...new Set(p.prompts)].slice(0, 8).forEach((pr) => lines.push(`  • ${pr}`));
     }
-    if (p.details?.length) lines.push(`Детали: ${[...new Set(p.details)].slice(0, 12).join("; ")}`);
+    if (p.interests?.length) lines.push(`Интересы: ${[...new Set(p.interests)].join(", ")}`);
+    if (p.details?.length) lines.push(`Анкета (выбрано из списка): ${[...new Set(p.details)].slice(0, 14).join("; ")}`);
+    if (p.work) lines.push(`Работа: ${p.work}`);
+    if (p.education) lines.push(`Образование: ${p.education}`);
+    if (p.goal) lines.push(`Цель: ${p.goal}`);
     return lines.join("\n").trim();
   }
 
@@ -432,6 +434,9 @@
         const src = im.currentSrc || im.src || "";
         if (!/^https?:/.test(src)) return false;
         if (/icon|logo|emoji|badge|1x1|pixel|svg/i.test(src)) return false;
+        // The small header/nav avatar isn't a gallery photo — skip it so it's
+        // not counted or sent for analysis.
+        if (/avatar/i.test((im.className || "").toString())) return false;
         const w = im.naturalWidth || im.width || 0;
         const h = im.naturalHeight || im.height || 0;
         return w >= 100 && h >= 100;
@@ -503,6 +508,66 @@
     return messages;
   }
 
+  // Badoo's OPEN full-profile view has a clean, specific structure
+  // (csms-view-profile-block / profile-badges__item). Parse it directly instead
+  // of the generic line/dom heuristics, which over-grab because innerText
+  // concatenates the whole "info" section into one blob (bio swallowing
+  // everything). Returns null when the open profile isn't present (chat view),
+  // so the caller falls back to the generic path.
+  function scrapeBadooViewProfile() {
+    const blocks = [...document.querySelectorAll(".csms-view-profile-block")];
+    if (!blocks.length) return null;
+    const profile = { interests: [], prompts: [], details: [] };
+
+    const nameRaw = text(firstMatch(["[class*='profile'] h1", "h1", "[class*='name']"])[0]);
+    if (nameRaw) {
+      profile.name = nameRaw.split(",")[0].trim();
+      const ageM = nameRaw.match(/,\s*(\d{1,3})/);
+      if (ageM) profile.age = parseInt(ageM[1], 10);
+    }
+    if (!profile.age) {
+      const ageNum = parseInt(
+        text(document.querySelector('[data-qa="profile-info__age"], [class*="profile-info__age"]')).replace(/[^\d]/g, ""),
+        10
+      );
+      if (ageNum >= 18 && ageNum <= 120) profile.age = ageNum;
+    }
+
+    // bio = the "About me" block's content; prompts = question blocks (h3
+    // question + __header-text answer). Each block is self-contained, so no blob.
+    for (const block of blocks) {
+      const h = block.querySelector(".csms-view-profile-block__header-title, h3, h4");
+      const label = text(h).toLowerCase();
+      const contentEl = block.querySelector(".csms-view-profile-block__content");
+      const answerEl = block.querySelector(".csms-view-profile-block__header-text");
+      if (/about me|о себе|про себе/.test(label) && contentEl) {
+        profile.bio = text(contentEl).slice(0, 600);
+      } else if (answerEl && block.closest('[data-qa^="profile-question"]')) {
+        // Only REAL prompt cards live under data-qa="profile-question-*". Info
+        // blocks (Current location, Verification) reuse __header-text but aren't
+        // prompts, so this excludes them.
+        const q = text(h);
+        const a = text(answerEl);
+        if (q && a && a.length > 1) profile.prompts.push(`${q} → ${a}`);
+      }
+    }
+
+    // badges: interests vs pre-populated basics. Take ONLY the visible
+    // .csms-badge__text value — never the a11y span ("Relationship, Single, You
+    // have this in common" / "...Edit").
+    for (const item of document.querySelectorAll(".profile-badges__item")) {
+      const t = text(item.querySelector(".csms-badge__text"));
+      if (!t || t.length > 60) continue;
+      if (item.matches('[data-qa="profile-interests-item"]')) profile.interests.push(t);
+      else profile.details.push(t);
+    }
+
+    profile.interests = [...new Set(profile.interests)];
+    profile.details = [...new Set(profile.details)];
+    profile.prompts = [...new Set(profile.prompts)].filter(usablePrompt);
+    return profile;
+  }
+
   const ADAPTERS = {
     badoo: {
       test: (h) => h.includes("badoo."),
@@ -518,21 +583,26 @@
             "[class*='bubble']",
           ]
         );
-        const structured = scrapeStructuredProfile();
-        const legacyBio = firstMatch([
-          "[class*='profile'] [class*='about']",
-          "[class*='bio']",
-          "[class*='profile-section']",
-        ])
-          .map(text)
-          .join(" ")
-          .slice(0, 600);
-        if (!structured.bio && legacyBio) structured.bio = legacyBio;
-        if (!structured.name) {
-          structured.name = text(firstMatch(["[class*='profile'] h1", "h1", "[class*='name']"])[0]);
+        // Prefer the clean open-profile parser; fall back to generic heuristics
+        // in the chat view (where the full profile blocks aren't present).
+        let structured = scrapeBadooViewProfile();
+        if (!structured) {
+          structured = scrapeStructuredProfile();
+          const legacyBio = firstMatch([
+            "[class*='profile'] [class*='about']",
+            "[class*='bio']",
+            "[class*='profile-section']",
+          ])
+            .map(text)
+            .join(" ")
+            .slice(0, 600);
+          if (!structured.bio && legacyBio) structured.bio = legacyBio;
+          if (!structured.name) {
+            structured.name = text(firstMatch(["[class*='profile'] h1", "h1", "[class*='name']"])[0]);
+          }
+          scrapeBadooProfileExtra(structured);
         }
         structured.app = "badoo";
-        scrapeBadooProfileExtra(structured);
         structured.bioText = profileToText(structured);
         return { profile: structured, messages, photos: collectPhotos() };
       },
