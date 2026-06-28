@@ -82,9 +82,10 @@ def _generate_llm(req: SuggestRequest) -> SuggestResponse:
 
     completion = client.chat.completions.create(
         model=settings.openai_model,
-        # Lower temperature → the model follows the opener rules (one detail,
-        # short, easy question) instead of over-embellishing into trait-piles.
-        temperature=0.8,
+        # Wit needs some creative latitude; the "one detail" rules (not low temp)
+        # are what prevent trait-piles. Too low and it defaults to bland safe
+        # questions instead of jokes.
+        temperature=0.9,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
