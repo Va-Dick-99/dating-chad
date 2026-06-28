@@ -82,7 +82,9 @@ def _generate_llm(req: SuggestRequest) -> SuggestResponse:
 
     completion = client.chat.completions.create(
         model=settings.openai_model,
-        temperature=0.95,
+        # Lower temperature → the model follows the opener rules (one detail,
+        # short, easy question) instead of over-embellishing into trait-piles.
+        temperature=0.8,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
