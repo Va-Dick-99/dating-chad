@@ -273,13 +273,21 @@
 
     const messages = parseTranscript($("#dc-transcript").value);
     const profText = $("#dc-profile").value.trim();
+    const photoSummary = $("#dc-photo-info").value.trim();
     const payload = {
       profile: buildApiProfile(profText),
       conversation: messages,
       goal: messages.length === 0 ? "open" : "continue",
       tone: selectedTones(),
-      photoUrls: scrapedPhotos.slice(0, 3),
     };
+    // Analyze photos only ONCE: the first press sends the images; afterwards reuse
+    // the extracted description already in the «По фото» box as text, so repeat
+    // presses don't re-spend vision tokens.
+    if (photoSummary) {
+      payload.photo_summary = photoSummary;
+    } else {
+      payload.photoUrls = scrapedPhotos.slice(0, 3);
+    }
 
     chrome.runtime.sendMessage({ type: "SUGGEST", payload }, (resp) => {
       suggesting = false;

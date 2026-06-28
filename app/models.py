@@ -60,6 +60,11 @@ class SuggestRequest(BaseModel):
         default_factory=list,
         description="Profile photo data URLs (data:image/...;base64,...) or http URLs to analyze.",
     )
+    photo_summary: Optional[str] = Field(
+        default=None,
+        description="Pre-extracted text description of her photos, reused on repeat calls "
+        "instead of re-sending images, to avoid re-spending vision tokens.",
+    )
 
 
 class ProfileInsights(BaseModel):

@@ -34,6 +34,11 @@ def generate(req: SuggestRequest) -> SuggestResponse:
             )
     else:
         resp = _generate_heuristic(req)
+    # When reusing a cached photo description (images not re-sent), keep it stable
+    # so the panel's «По фото» box isn't clobbered between presses and the next
+    # press sends the same summary back.
+    if req.photo_summary and not req.photos:
+        resp.profile_insights.photo_analysis = req.photo_summary
     _normalize_messages(resp)
     return resp
 
@@ -77,7 +82,10 @@ def _generate_llm(req: SuggestRequest) -> SuggestResponse:
 
     completion = client.chat.completions.create(
         model=settings.openai_model,
-        temperature=0.95,
+        # Wit needs some creative latitude; the "one detail" rules (not low temp)
+        # are what prevent trait-piles. Too low and it defaults to bland safe
+        # questions instead of jokes.
+        temperature=0.9,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
